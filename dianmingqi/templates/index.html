@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能抽签系统</title>
+    <style>
+        :root {
+            --primary: #4A90E2;
+            --secondary: #7ED321;
+            --background: #f5f7fb;
+            --text: #2c3e50;
+            --border: #e0e0e0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--background);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        input {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: opacity 0.2s;
+            width: 100%;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .result-box {
+            background: var(--background);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 1.5rem;
+            text-align: center;
+        }
+
+        .highlight {
+            color: var(--secondary);
+            font-size: 1.4rem;
+            margin: 1rem 0;
+            font-weight: bold;
+        }
+
+        #studentsTable {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        #studentsTable th,
+        #studentsTable td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        #studentsTable th {
+            background: var(--background);
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s ease;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .delete-btn {
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: opacity 0.2s;
+        }
+
+        .delete-btn:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>智能抽签系统</h1>
+        <p>学生管理与随机抽签解决方案</p>
+    </div>
+
+    <div class="dashboard">
+        <!-- 学生管理 -->
+        <div class="card">
+            <div class="card-title">
+                <h2>🎓 学生管理</h2>
+            </div>
+            <div class="form-group">
+                <input type="text" id="name" placeholder="学生姓名">
+            </div>
+            <div class="form-group">
+                <input type="text" id="id" placeholder="学生学号">
+            </div>
+            <div class="form-group">
+                <input type="text" id="sex" placeholder="学生性别">
+            </div>
+            <button onclick="addStudent()">➕ 添加学生</button>
+            
+            <div class="form-group" style="margin-top: 1.5rem;">
+                <input type="text" id="deleteId" placeholder="输入要删除的学号">
+            </div>
+            <button onclick="deleteStudent()" style="background: #ff4444;">🗑️ 删除学生</button>
+        </div>
+
+        <!-- 随机功能 -->
+        <div class="card">
+            <div class="card-title">
+                <h2>🎲 随机功能</h2>
+            </div>
+            <button onclick="drawlot()">🎯 抽取学生</button>
+            
+            <div style="display: flex; gap: 1rem; margin: 1.5rem 0;">
+                <input type="number" id="minVal" placeholder="最小值">
+                <input type="number" id="maxVal" placeholder="最大值">
+            </div>
+            <button onclick="generateNumber()" style="background: var(--secondary);">🔢 生成随机数</button>
+
+            <div class="result-box" id="resultContainer">
+                <div id="resultContent"></div>
+            </div>
+        </div>
+
+        <!-- 学生列表 -->
+        <div class="card">
+            <div class="card-title">
+                <h2>📋 学生列表</h2>
+            </div>
+            <button onclick="loadStudents()" style="background: #666; margin-bottom: 1rem;">🔄 刷新列表</button>
+            <table id="studentsTable">
+                <thead>
+                    <tr>
+                        <th>姓名</th>
+                        <th>学号</th>
+                        <th>性别</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="studentsBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // Toast通知系统
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast show ${type}`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // 加载学生列表
+        async function loadStudents() {
+            try {
+                const response = await fetch('/all');
+                const { code, data } = await response.json();
+                
+                if (code === 0) {
+                    const tbody = document.getElementById('studentsBody');
+                    tbody.innerHTML = data.map(student => `
+                        <tr>
+                            <td>${student.name}</td>
+                            <td>${student.id}</td>
+                            <td>${student.sex}</td>
+                            <td>
+                                <button class="delete-btn" onclick="deleteStudentById('${student.id}')">🗑️ 删除</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (error) {
+                showToast('加载失败', 'error');
+            }
+        }
+
+        // 新增：行内删除按钮处理函数
+        async function deleteStudentById(id) {
+            if (!confirm('确认删除该学生吗？')) return;
+
+            try {
+                const response = await fetch('/delete', {
+                    method: 'POST',
+                    body: new URLSearchParams({ id })
+                });
+                
+                const { code } = await response.json();
+                if (code === 0) {
+                    showToast('删除成功', 'success');
+                    loadStudents();
+                }
+            } catch (error) {
+                showToast('删除失败', 'error');
+            }
+        }
+
+        // 删除学生
+        async function deleteStudent() {
+            const id = document.getElementById('deleteId').value;
+            if (!id) return showToast('请输入学号', 'warning');
+
+            deleteStudentById(id);
+        }
+
+        // 添加学生
+        async function addStudent() {
+            const student = {
+                name: document.getElementById('name').value,
+                id: document.getElementById('id').value,
+                sex: document.getElementById('sex').value
+            };
+
+            if (!student.name || !student.id || !student.sex) {
+                return showToast('请填写完整信息', 'warning');
+            }
+
+            try {
+                const response = await fetch('/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams(student)
+                });
+                
+                const { code } = await response.json();
+                if (code === 0) {
+                    showToast('添加成功', 'success');
+                    loadStudents();
+                }
+            } catch (error) {
+                showToast('添加失败', 'error');
+            }
+        }
+
+        // 抽签功能
+        async function drawlot() {
+            try {
+                const response = await fetch('/drawlots');
+                const { code, data } = await response.json();
+                
+                if (code === 0) {
+                    const result = document.getElementById('resultContent');
+                    result.innerHTML = `
+                        <div>🎉 抽中学生：</div>
+                        <div class="highlight">${data.name}</div>
+                        <div>学号：${data.id} | 性别：${data.sex}</div>
+                    `;
+                }
+            } catch (error) {
+                showToast('抽签失败', 'error');
+            }
+        }
+
+        // 生成随机数
+        async function generateNumber() {
+            const min = document.getElementById('minVal').value;
+            const max = document.getElementById('maxVal').value;
+            
+            if (!min || !max) return showToast('请输入范围值', 'warning');
+
+            try {
+                const response = await fetch('/number', {
+                    method: 'POST',
+                    body: new URLSearchParams({ frm: min, to: max })
+                });
+                
+                const { code, data } = await response.json();
+                if (code === 0) {
+                    const result = document.getElementById('resultContent');
+                    result.innerHTML = `
+                        <div>🔢 随机数字：</div>
+                        <div class="highlight">${data}</div>
+                    `;
+                }
+            } catch (error) {
+                showToast('生成失败', 'error');
+            }
+        }
+
+        // 初始化加载
+        window.onload = loadStudents;
+    </script>
+</body>
+</html>
+    
